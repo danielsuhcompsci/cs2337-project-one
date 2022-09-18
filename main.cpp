@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
 #include "Ant.h"
 #include "Beetle.h"
@@ -55,13 +56,15 @@ int main() {
 
   std::ifstream input("input.txt");
 
-  Creature *grid[10][10];
-
   // Exit if file wasn't opened properly
   if (!input.is_open()) {
     std::cout << "file not opened properly" << std::endl;
     return 1;
   }
+
+  Creature *grid[10][10];
+  std::unordered_map<int, char> indexToDirection(
+      {{0, 'N'}, {1, 'E'}, {2, 'S'}, {3, 'W'}});
 
   // Read grid from file
   for (int row = 0; row < 10; row++) {

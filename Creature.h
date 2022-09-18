@@ -4,10 +4,11 @@
 #define CREATURE_H
 
 #include <string>
+#include <unordered_map>
 
 class Creature {
  protected:
-  virtual std::string Move(int[4]) = 0;
+  virtual std::string Move(int[4], std::unordered_map<int, char>) = 0;
   virtual std::string Breed(int[4]) = 0;
 };
 

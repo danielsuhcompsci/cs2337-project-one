@@ -13,36 +13,33 @@ void readInputRow(std::string &line, Creature *grid[10][10], int row) {
     if (line[i] == 'a') {
       Ant *ptr = new Ant();
       grid[row][i] = ptr;
+      std::cout << "Added ant"
+                << " ";
     } else if (line[i] == 'B') {
       Beetle *ptr = new Beetle();
       grid[row][i] = ptr;
+      std::cout << "Added beetle"
+                << " ";
     } else {
       grid[row][i] = nullptr;
+      std::cout << "empty"
+                << " ";
     }
   }
+  std::cout << std::endl;
 }
 
 void print(Creature *grid[10][10]) {
-  std::cout << "enter print" << std::endl;
   for (int row = 0; row < 10; row++) {
     for (int i = 0; i < 10; i++) {
-      if (i == 1) {
-        std::cout << "1";
-      } else {
-        std::cout << "2";
-      }
       if (dynamic_cast<Ant *>(grid[row][i]) != nullptr) {
-        std::cout << "found ant" << std::endl;
         std::cout << "a";
       } else if (dynamic_cast<Beetle *>(grid[row][i]) != nullptr) {
         std::cout << "B";
       } else {
-        std::cout << "something";
         std::cout << " ";
       }
     }
-
-    std::cout << "end of row" << std::endl;
     std::cout << std::endl;
   }
 }
@@ -66,9 +63,13 @@ int main() {
   std::unordered_map<int, char> indexToDirection(
       {{0, 'N'}, {1, 'E'}, {2, 'S'}, {3, 'W'}});
 
+  // getline(input, line);
+  // std::cout << line << std::endl;
+
   // Read grid from file
   for (int row = 0; row < 10; row++) {
     std::getline(input, line);
+    // std::cout << line;
     readInputRow(line, grid, row);
   }
 

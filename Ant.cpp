@@ -2,8 +2,6 @@
 
 #include "Ant.h"
 
-#include <vector>
-
 std::string Ant::Move(int distances[4],
                       std::unordered_map<int, char> indexToDirection) {
   // Holds where the ant "wants" to go
@@ -33,26 +31,44 @@ std::string Ant::Move(int distances[4],
       minDistanceCount++;
 
     if (distances[i] > maxDistance) maxDistance = distances[i];
+  }
 
-    // If there is only one closest beetle
-    if (minDistanceCount == 1) {
-      // Add the opposite direction of that beetle to the decision string and
-      // return
-      decisionString.push_back(indexToDirection.at((minDistance + 2) % 4));
-      return decisionString;
+  // If there is only one closest beetle
+  if (minDistanceCount == 1) {
+    // Find the index for the closest distance
+    int minDistanceIndex = 0;
+    while (distances[minDistanceIndex] != minDistance &&
+           (minDistanceIndex < 4)) {
+      minDistanceIndex++;
     }
 
-    // If there is a tie for closest beetle
-    else if (minDistanceCount >= 2) {
-      // Look for an empty lane in N, E, S, W order
-      for (int i = 0; i < 4; i++) {
-        if (distances[i] == 0) {
-          decisionString.push_back(indexToDirection.at(distances[i]));
-          return decisionString;
-        }
+    // Add the opposite direction to the decision string
+    decisionString.push_back(indexToDirection.at((minDistanceIndex + 2) % 4));
+    return decisionString;
+  }
+
+  // If there is a tie for closest beetle
+  else if (minDistanceCount == 2 || minDistanceCount == 3) {
+    // Look for an empty lane in N, E, S, W order
+    for (int i = 0; i < 4; i++) {
+      if (distances[i] == 0) {
+        decisionString.push_back(indexToDirection.at(i));
+        return decisionString;
+      }
+    }
+
+    // Find the farthest distance
+    for (int i = 0; i < 4; i++) {
+      if (distances[i] == maxDistance) {
+        decisionString.push_back(indexToDirection.at(i));
+        return decisionString;
       }
     }
   }
+
+  // If the ant is equally surrounded there is nowhere to move
+
+  return decisionString;
 }
 
 std::string Ant::Breed(int[4]) {}

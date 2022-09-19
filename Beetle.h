@@ -8,8 +8,10 @@
 class Beetle : public Creature {
  public:
   Beetle() {}
-  virtual std::string Move(int[4], std::unordered_map<int, char>) override;
-  virtual std::string Breed(int[4]) override;
+  virtual std::string Move(int[4],
+                           const std::unordered_map<int, char>&) override;
+  virtual std::string Breed(bool[4],
+                            const std::unordered_map<int, char>&) override;
 };
 
 #endif

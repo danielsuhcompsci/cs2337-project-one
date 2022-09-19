@@ -13,17 +13,11 @@ void readInputRow(std::string &line, Creature *grid[10][10], int row) {
     if (line[i] == 'a') {
       Ant *ptr = new Ant();
       grid[row][i] = ptr;
-      std::cout << "Added ant"
-                << " ";
     } else if (line[i] == 'B') {
       Beetle *ptr = new Beetle();
       grid[row][i] = ptr;
-      std::cout << "Added beetle"
-                << " ";
     } else {
       grid[row][i] = nullptr;
-      std::cout << "empty"
-                << " ";
     }
   }
   std::cout << std::endl;
@@ -60,7 +54,7 @@ int main() {
   }
 
   Creature *grid[10][10];
-  std::unordered_map<int, char> indexToDirection(
+  const std::unordered_map<int, char> indexToDirection(
       {{0, 'N'}, {1, 'E'}, {2, 'S'}, {3, 'W'}});
 
   // getline(input, line);
@@ -74,4 +68,10 @@ int main() {
   }
 
   print(grid);
+
+  Ant a;
+  int distances[4] = {1, 1, 0, 1};  // N, E, S, W
+  bool isCreature[4] = {true, false, true, false};
+  std::cout << a.Move(distances, indexToDirection) << std::endl;
+  std::cout << a.Breed(isCreature, indexToDirection) << std::endl;
 }

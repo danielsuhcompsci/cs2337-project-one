@@ -2,8 +2,10 @@
 
 #include "Ant.h"
 
+#include <iostream>
+
 std::string Ant::Move(int distances[4],
-                      std::unordered_map<int, char> indexToDirection) {
+                      const std::unordered_map<int, char> &indexToDirection) {
   // Holds where the ant "wants" to go
   std::string decisionString = "";
 
@@ -23,7 +25,7 @@ std::string Ant::Move(int distances[4],
   int minDistanceCount = 1;
 
   // Finds the smallest nonzero distance and the farthest distance
-  for (int i = 1; i < 4; i++) {
+  for (int i = 0; i < 4; i++) {
     if ((distances[i] < minDistance) && (distances[i] > 0)) {
       minDistance = distances[i];
       minDistanceCount = 1;
@@ -32,6 +34,10 @@ std::string Ant::Move(int distances[4],
 
     if (distances[i] > maxDistance) maxDistance = distances[i];
   }
+
+  std::cout << "min: " << minDistance << std::endl;
+  std::cout << "max: " << maxDistance << std::endl;
+  std::cout << "min count: " << minDistanceCount << std::endl;
 
   // If there is only one closest beetle
   if (minDistanceCount == 1) {
@@ -71,4 +77,16 @@ std::string Ant::Move(int distances[4],
   return decisionString;
 }
 
-std::string Ant::Breed(int[4]) {}
+std::string Ant::Breed(bool isCreature[4],
+                       const std::unordered_map<int, char> &indexToDirection) {
+  std::string decisionString = "";
+
+  for (int i = 0; i < 4; i++) {
+    if (isCreature[i] == true) {
+      decisionString.push_back(indexToDirection.at(i));
+      return decisionString;
+    }
+  }
+
+  return decisionString;
+}

@@ -8,9 +8,8 @@
 
 class Creature {
  protected:
-  Creature(){};
-  virtual std::string Move(int[4], std::unordered_map<int, char>) = 0;
-  virtual std::string Breed(int[4]) = 0;
+  virtual std::string Move(int[4], const std::unordered_map<int, char>&) = 0;
+  virtual std::string Breed(bool[4], const std::unordered_map<int, char>&) = 0;
 };
 
 #endif

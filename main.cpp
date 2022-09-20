@@ -1,6 +1,7 @@
 // Daniel dss210005
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -31,10 +32,19 @@ void print(Creature *grid[10][10]) {
       } else if (dynamic_cast<Beetle *>(grid[row][i]) != nullptr) {
         std::cout << "B";
       } else {
-        std::cout << " ";
+        std::cout << ".";
       }
     }
     std::cout << std::endl;
+  }
+}
+
+void playGame(int turns, Creature *grid[10][10]) {
+  for (int turn = 1; turn <= turns; turn++) {
+    for (int column = 0; column < 10; column++) {
+      for (int row = 0; row < 10; row++) {
+      }
+    }
   }
 }
 
@@ -69,9 +79,18 @@ int main() {
 
   print(grid);
 
-  Ant a;
-  int distances[4] = {1, 1, 0, 1};  // N, E, S, W
-  bool isCreature[4] = {true, false, true, false};
-  std::cout << a.Move(distances, indexToDirection) << std::endl;
-  std::cout << a.Breed(isCreature, indexToDirection) << std::endl;
+  // Ant a;
+  // int distances[4] = {1, 1, 0, 1};  // N, E, S, W
+  // bool isCreature[4] = {true, false, true, false};
+  // std::cout << "Ant move: " << a.Move(distances, indexToDirection) <<
+  // std::endl; std::cout << "Ant breed: " << a.Breed(isCreature,
+  // indexToDirection)
+  //           << std::endl;
+
+  // int beetleDistances[4] = {11, 11, 11, 11};  // N, E, S, W
+  // Beetle b;
+  // std::cout << "Beetle move: " << b.Move(beetleDistances, indexToDirection)
+  //           << std::endl;
+  // std::cout << "Beetle breed: " << b.Breed(isCreature, indexToDirection)
+  //           << std::endl;
 }

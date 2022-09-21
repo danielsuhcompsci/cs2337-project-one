@@ -49,63 +49,63 @@ bool is(Creature *ptr) {
 }
 
 template <typename CreatureType>
-int getNearestDistance(int &directionIndex) {
-  switch (directionIndex) {
-    case 0:  // North (-y direction)
+int checkNorthOrSouth(Creature *grid[10][10], bool isNorth, int row,
+                      int column) {
+  int rowIndex;
+
+  if (isNorth) {         // North
+    rowIndex = row - 1;  // Start one above desired tiel
+
+    // Iterate up until the specified creature is found
+    while (isOnGrid(rowIndex, column)) {
+      if (is<CreatureType>(grid[rowIndex][column])) {
+        return row - rowIndex;
+      }
       rowIndex--;
+    }
 
-      // Iterate up until the specified creature is found
-      while (isOnGrid(rowIndex, column)) {
-        if (is<CreatureType>(grid[rowIndex][column])) {
-          return row - rowIndex;
-        }
-        rowIndex--;
+    // return 0 if there is no creature
+    return 0;
+  } else {               // South
+    rowIndex = row + 1;  // Start one below desired tile
+
+    while (isOnGrid(rowIndex, column)) {
+      if (is<CreatureType>(grid[rowIndex][column])) {
+        return rowIndex - row;
       }
-
-      // Else return 0
-      return 0;
-      break;
-    case 1:  // East (+x direction)
-      columnIndex++;
-
-      while (isOnGrid(row, columnIndex)) {
-        if (is<CreatureType>(grid[row][columnIndex])) {
-          return columnIndex - column;
-        }
-        columnIndex++;
-      }
-
-      return 0;
-      break;
-    case 2:
       rowIndex++;
+    }
 
-      while (isOnGrid(rowIndex, column)) {
-        if (is<CreatureType>(grid[rowIndex][column])) {
-          return rowIndex - row;
-        }
-        rowIndex++;
+    return 0;
+  }
+}
+
+template <typename CreatureType>
+int checkEastOrWest(Creature *grid[10][10], bool isEast, int row, int column) {
+  int columnIndex;
+
+  if (isEast) {                // East
+    columnIndex = column + 1;  // Start one unit to the right
+
+    while (isOnGrid(row, columnIndex)) {
+      if (is<CreatureType>(grid[row][columnIndex])) {
+        return columnIndex - column;
       }
+      columnIndex++;
+    }
 
-      return 0;
-      break;
-    case 3:
+    return 0;
+  } else {                     // West
+    columnIndex = column - 1;  // Start one unit to the left
+
+    while (isOnGrid(row, columnIndex)) {
+      if (is<CreatureType>(grid[row][columnIndex])) {
+        return column - columnIndex;
+      }
       columnIndex--;
+    }
 
-      while (isOnGrid(rowIndex, column)) {
-        if (is<CreatureType>(grid[rowIndex][column])) {
-          return column - columnIndex;
-        }
-        columnIndex--;
-      }
-
-      return 0;
-      break;
-    default:
-      std::cout << "Unexpected error in getNearestDistances()" << std::endl;
-
-      return 0;
-      break;
+    return 0;
   }
 }
 
@@ -116,25 +116,10 @@ void getNearestDistances(
   // Row and columns indexes used to iterate through grid
   int rowIndex = row, columnIndex = column;
 
-  // Iterate through each direction and set the starting
-  for (int directionIndex = 0; directionIndex < 4; directionIndex++) {
-    // Reset the index to point to original position
-    rowIndex = row;
-    columnIndex = column;
-  }
-
-  // North direction (-y direction)
-  rowIndex = row - 1;
-
-  while (isOnGrid(rowIndex, column)) {
-    if (is<CreatureType>(grid[rowIndex][column])) {
-      distances[0] = row - rowIndex;
-    }
-    rowIndex--;
-  }
-
-  for (int rowIndex = row - 1; rowIndex >= 0; rowIndex--) {
-  }
+  distances[0] = checkNorthOrSouth(grid, true, row, column);
+  distances[1] = checkEastOrWest(grid, true, row, column);
+  distances[2] = checkNorthOrSouth(grid, false, row, column);
+  distances[3] = checkEastOrWest(grid, false, row, column);
 }
 
 void getFarthestDistance(Creature *grid[10][10]) {}

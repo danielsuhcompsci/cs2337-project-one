@@ -43,21 +43,97 @@ bool isOnGrid(int row, int column) {
   return (0 <= row && row < 10 && 0 <= column && column < 10) ? true : false;
 }
 
-template <typename T>
+template <typename CreatureType>
 bool is(Creature *ptr) {
-  return (dynamic_cast<T *>(ptr) != nullptr) ? true : false;
+  return (dynamic_cast<CreatureType *>(ptr) != nullptr) ? true : false;
+}
+
+template <typename CreatureType>
+int getNearestDistance(int &directionIndex) {
+  switch (directionIndex) {
+    case 0:  // North (-y direction)
+      rowIndex--;
+
+      // Iterate up until the specified creature is found
+      while (isOnGrid(rowIndex, column)) {
+        if (is<CreatureType>(grid[rowIndex][column])) {
+          return row - rowIndex;
+        }
+        rowIndex--;
+      }
+
+      // Else return 0
+      return 0;
+      break;
+    case 1:  // East (+x direction)
+      columnIndex++;
+
+      while (isOnGrid(row, columnIndex)) {
+        if (is<CreatureType>(grid[row][columnIndex])) {
+          return columnIndex - column;
+        }
+        columnIndex++;
+      }
+
+      return 0;
+      break;
+    case 2:
+      rowIndex++;
+
+      while (isOnGrid(rowIndex, column)) {
+        if (is<CreatureType>(grid[rowIndex][column])) {
+          return rowIndex - row;
+        }
+        rowIndex++;
+      }
+
+      return 0;
+      break;
+    case 3:
+      columnIndex--;
+
+      while (isOnGrid(rowIndex, column)) {
+        if (is<CreatureType>(grid[rowIndex][column])) {
+          return column - columnIndex;
+        }
+        columnIndex--;
+      }
+
+      return 0;
+      break;
+    default:
+      std::cout << "Unexpected error in getNearestDistances()" << std::endl;
+
+      return 0;
+      break;
+  }
 }
 
 template <typename CreatureType>
 void getNearestDistances(
     Creature *grid[10][10], int distances[4], int row, int column,
     const std::unordered_map<int, char> &indexToDirection) {
-  // North, negative y direction
-  int rowIndex = row - 1;
+  // Row and columns indexes used to iterate through grid
+  int rowIndex = row, columnIndex = column;
+
+  // Iterate through each direction and set the starting
+  for (int directionIndex = 0; directionIndex < 4; directionIndex++) {
+    // Reset the index to point to original position
+    rowIndex = row;
+    columnIndex = column;
+  }
+
+  // North direction (-y direction)
+  rowIndex = row - 1;
+
+  while (isOnGrid(rowIndex, column)) {
+    if (is<CreatureType>(grid[rowIndex][column])) {
+      distances[0] = row - rowIndex;
+    }
+    rowIndex--;
+  }
 
   for (int rowIndex = row - 1; rowIndex >= 0; rowIndex--) {
-    if (is<CreatureType>(grid[rowIndex][column])) {
-    }
   }
 }
 

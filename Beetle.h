@@ -10,13 +10,10 @@
 class Beetle : public Creature {
  public:
   Beetle() {}
-  ~Beetle() {}
-  virtual std::string Move(int[4],
-                           const std::unordered_map<int, char>&) override;
-  virtual std::string Breed(bool[4],
-                            const std::unordered_map<int, char>&) override;
+  char Move(int[4], const std::unordered_map<int, char>&) override;
+  char Breed(bool[4], const std::unordered_map<int, char>&) override;
   bool Starve();
-  void IncrementTimer();
+  void ResetTimer();
   void DecrementTimer();
   static void ParseInput(int[4], int[4], int[4]);
 

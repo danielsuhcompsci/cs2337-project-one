@@ -8,10 +8,8 @@
 class Ant : public Creature {
  public:
   Ant() {}
-  virtual std::string Move(int[4],
-                           const std::unordered_map<int, char>&) override;
-  virtual std::string Breed(bool[4],
-                            const std::unordered_map<int, char>&) override;
+  char Move(int[4], const std::unordered_map<int, char>&) override;
+  char Breed(bool[4], const std::unordered_map<int, char>&) override;
 };
 
 #endif

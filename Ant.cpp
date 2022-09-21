@@ -4,15 +4,12 @@
 
 #include <iostream>
 
-std::string Ant::Move(int distances[4],
-                      const std::unordered_map<int, char> &indexToDirection) {
-  // Holds where the ant "wants" to go
-  std::string decisionString = "";
-
+char Ant::Move(int distances[4],
+               const std::unordered_map<int, char> &indexToDirection) {
   // If there are no beetles in all directions, return an empty decision string
   if ((distances[0] == 0) && (distances[1] == 0) && (distances[2] == 0) &&
       (distances[3] == 0))
-    return decisionString;
+    return '\0';
 
   // The smallest nonzero distance, set at 9 in case the first element is 0.
   // Represents the closest beetle distance
@@ -35,10 +32,6 @@ std::string Ant::Move(int distances[4],
     if (distances[i] > maxDistance) maxDistance = distances[i];
   }
 
-  std::cout << "min: " << minDistance << std::endl;
-  std::cout << "max: " << maxDistance << std::endl;
-  std::cout << "min count: " << minDistanceCount << std::endl;
-
   // If there is only one closest beetle
   if (minDistanceCount == 1) {
     // Find the index for the closest distance
@@ -49,8 +42,7 @@ std::string Ant::Move(int distances[4],
     }
 
     // Add the opposite direction to the decision string
-    decisionString.push_back(indexToDirection.at((minDistanceIndex + 2) % 4));
-    return decisionString;
+    return indexToDirection.at((minDistanceIndex + 2) % 4);
   }
 
   // If there is a tie for closest beetle
@@ -58,35 +50,30 @@ std::string Ant::Move(int distances[4],
     // Look for an empty lane in N, E, S, W order
     for (int i = 0; i < 4; i++) {
       if (distances[i] == 0) {
-        decisionString.push_back(indexToDirection.at(i));
-        return decisionString;
+        return indexToDirection.at(i);
       }
     }
 
     // Find the farthest distance
     for (int i = 0; i < 4; i++) {
       if (distances[i] == maxDistance) {
-        decisionString.push_back(indexToDirection.at(i));
-        return decisionString;
+        return indexToDirection.at(i);
       }
     }
   }
 
-  // If the ant is equally surrounded there is nowhere to move
-
-  return decisionString;
+  // Should not reach this point
+  return '\0';
 }
 
-std::string Ant::Breed(bool isCreature[4],
-                       const std::unordered_map<int, char> &indexToDirection) {
-  std::string decisionString = "";
-
+char Ant::Breed(bool isCreature[4],
+                const std::unordered_map<int, char> &indexToDirection) {
   for (int i = 0; i < 4; i++) {
     if (isCreature[i] == true) {
-      decisionString.push_back(indexToDirection.at(i));
-      return decisionString;
+      return indexToDirection.at(i);
     }
   }
 
-  return decisionString;
+  // Nowhere to breed
+  return '\0';
 }

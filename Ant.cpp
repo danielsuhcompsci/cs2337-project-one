@@ -69,7 +69,7 @@ char Ant::Move(int distances[4],
 char Ant::Breed(bool isCreature[4],
                 const std::unordered_map<int, char> &indexToDirection) {
   for (int i = 0; i < 4; i++) {
-    if (isCreature[i] == true) {
+    if (isCreature[i] == false) {
       return indexToDirection.at(i);
     }
   }

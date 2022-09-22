@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 
 #include "Ant.h"
@@ -86,7 +87,6 @@ void readInputRow(std::string &line, Creature *grid[10][10], int row) {
       grid[row][i] = nullptr;
     }
   }
-  std::cout << std::endl;
 }
 
 void print(Creature *grid[10][10]) {
@@ -97,7 +97,7 @@ void print(Creature *grid[10][10]) {
       } else if (is<Beetle>(grid[row][i])) {
         std::cout << "B";
       } else {
-        std::cout << ".";
+        std::cout << " ";
       }
     }
     std::cout << std::endl;
@@ -201,8 +201,24 @@ int getNeighborCount(Creature *grid[10][10], const Position &position,
   return count;
 }
 
-// void checkOrthogonalNeighbors(Creature *grid[10][10], bool isCreature[4],
-//                               int row, int column) {}
+void checkOrthogonalNeighbors(
+    Creature *grid[10][10], bool isCreature[4], const Position &position,
+    const std::unordered_map<int, char> &indexToDirection) {
+  for (int i = 0; i < 4; i++) {
+    Position tempPosition(position);
+    tempPosition += Position::getOffset(indexToDirection.at(i));
+
+    if (tempPosition.isOnGrid()) {
+      if (grid[tempPosition.row][tempPosition.column] != nullptr) {
+        isCreature[i] = true;
+      } else {
+        isCreature[i] = false;
+      }
+    } else {
+      isCreature[i] = false;
+    }
+  }
+}
 
 void moveIfPossible(Creature *grid[10][10], const Position &position,
                     const char &decision) {
@@ -234,28 +250,70 @@ void moveIfPossible(Creature *grid[10][10], const Position &position,
   }
 }
 
-void beetlePhase(Creature *grid[10][10],
-                 const std::unordered_map<int, char> &indexToDirection) {
+template <typename CreatureType>
+void movePhase(Creature *grid[10][10],
+               const std::unordered_map<int, char> &indexToDirection) {
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
-      if (is<Beetle>(grid[row][column])) {
-        Beetle *beetlePointer = dynamic_cast<Beetle *>(grid[row][column]);
+      if (is<CreatureType>(grid[row][column])) {
+        CreatureType *pointer = dynamic_cast<CreatureType *>(grid[row][column]);
 
         int distances[4];
 
-        getNearestDistances<Ant>(grid, distances, row, column,
-                                 indexToDirection);
+        // If it's a beetle, find the nearest ants
+        if (std::is_same<CreatureType, Beetle>::value) {
+          getNearestDistances<Ant>(grid, distances, row, column,
+                                   indexToDirection);
+        } else {  // and vice versa
+          getNearestDistances<Beetle>(grid, distances, row, column,
+                                      indexToDirection);
+        }
 
-        const char decision = beetlePointer->Move(distances, indexToDirection);
+        char decision = pointer->Move(distances, indexToDirection);
 
-        moveIfPossible(grid, Position(column, row), decision);
+        Position currentPosition(column, row);
+
+        if (decision == 'F') {
+          decision = getFarthestDirection(currentPosition, indexToDirection);
+        }
+
+        if (!(decision == '\0')) {
+          moveIfPossible(grid, Position(column, row), decision);
+        }
       }
     }
   }
 }
 
-void antPhase(Creature *grid[10][10],
-              const std::unordered_map<int, char> &indexToDirection) {}
+void antBreedPhase(Creature *grid[10][10],
+                   const std::unordered_map<int, char> &indexToDirection) {
+  for (int column = 0; column < 10; column++) {
+    for (int row = 0; row < 10; row++) {
+      if (is<Ant>(grid[row][column])) {
+        Ant *ptr = dynamic_cast<Ant *>(grid[row][column]);
+
+        bool isCreature[4];
+
+        checkOrthogonalNeighbors(grid, isCreature, Position(column, row),
+                                 indexToDirection);
+        const char decision = ptr->Breed(isCreature, indexToDirection);
+
+        // If there is a decision
+        if (decision != '\0') {
+          Position spawnPosition(column, row);
+          spawnPosition += Position::getOffset(decision);
+
+          if (spawnPosition.isOnGrid()) {
+            if (!(grid[spawnPosition.row][spawnPosition.column] == nullptr)) {
+              std::cout << "spawn position not empty" << std::endl;
+            }
+            grid[spawnPosition.row][spawnPosition.column] = new Ant();
+          }
+        }
+      }
+    }
+  }
+}
 
 void starvePhase(Creature *grid[10][10],
                  const std::unordered_map<int, char> &indexToDirection) {}
@@ -266,8 +324,10 @@ void playGame(int turns, Creature *grid[10][10],
     for (int phase = 0; phase < 2; phase++) {
       switch (phase) {
         case 0:  // Beetles move
+          movePhase<Beetle>(grid, indexToDirection);
           break;
         case 1:  // Ants move
+          movePhase<Ant>(grid, indexToDirection);
           break;
         case 2:  // Beetles starve
           break;
@@ -276,22 +336,27 @@ void playGame(int turns, Creature *grid[10][10],
 
     // Ants breed
     if (turn % 3 == 0) {
+      antBreedPhase(grid, indexToDirection);
     }
 
     // Beetles breed
     if (turn % 8 == 0) {
     }
+
+    std::cout << "TURN " << turn << std::endl;
+    print(grid);
+    std::cout << std::endl;
   }
 }
 
 int main() {
   std::string fileName, line;
 
-  //   std::cout << "Please input the file name: " << std::endl;
-  //   std::cin >> fileName;
-  //   std::ifstream input(fileName);
+  // std::cout << "Please input the file name: " << std::endl;
+  std::cin >> fileName;
+  std::ifstream input(fileName);
 
-  std::ifstream input("input.txt");
+  // std::ifstream input("input.txt");
 
   // Exit if file wasn't opened properly
   if (!input.is_open()) {
@@ -304,19 +369,13 @@ int main() {
   const std::unordered_map<int, char> indexToDirection(
       {{0, 'N'}, {1, 'E'}, {2, 'S'}, {3, 'W'}});
 
-  const std::unordered_map<char, Position> directionToOffset();
-
-  // getline(input, line);
-  // std::cout << line << std::endl;
-
   // Read grid from file
   for (int row = 0; row < 10; row++) {
     std::getline(input, line);
-    // std::cout << line;
     readInputRow(line, grid, row);
   }
 
-  print(grid);
+  playGame(3, grid, indexToDirection);
 
   // Ant a;
   // int distances[4] = {1, 1, 0, 1};  // N, E, S, W

@@ -6,6 +6,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <vector>
 
 #include "Ant.h"
 #include "Beetle.h"
@@ -104,71 +105,8 @@ void print(Creature *grid[10][10]) {
   }
 }
 
-template <typename CreatureType>
-int getNearestDistance(Creature *grid[10][10], Position position,
-                       const char &direction) {
-  Position tempPosition(position);
-
-  while (tempPosition.isOnGrid()) {
-    if (is<CreatureType>(grid[tempPosition.row][tempPosition.column])) {
-      if (position.row == tempPosition.row) {
-        return Position::abs(tempPosition - position).column;
-      } else {
-        return Position::abs(tempPosition - position).row;
-      }
-    }
-    tempPosition += Position::getOffset(direction);
-  }
-
-  // There isn't a nearest creature of the specified type
-  return 0;
-}
-
-template <typename CreatureType>
-void getNearestDistances(
-    Creature *grid[10][10], int distances[4], int row, int column,
-    const std::unordered_map<int, char> &indexToDirection) {
-  for (int i = 0; i < 4; i++) {
-    distances[i] = getNearestDistance<CreatureType>(grid, Position(column, row),
-                                                    indexToDirection.at(i));
-  }
-}
-
-char getFarthestDirection(
-    Position position, const std::unordered_map<int, char> &indexToDirection) {
-  char decision;
-  int distances[4];
-
-  distances[0] = position.row;         // North
-  distances[1] = 9 - position.column;  // East
-  distances[2] = 9 - position.row;     // South
-  distances[3] = position.column;      // West
-
-  // Find the max distance
-  int max = distances[0];
-  for (int i = 1; i < 4; i++) {
-    if (distances[i] > max) {
-      max = distances[i];
-    }
-  }
-
-  // Returns the direction of the max distance in N, E, S, W order
-  for (int i = 0; i < 4; i++) {
-    if (distances[i] == max) {
-      decision = indexToDirection.at(i);
-      return decision;
-    }
-  }
-
-  // Function should not go past this point because max must be a number
-  // within distances[4]
-  std::cout << "Unexpected error in getFarthestDirection()" << std::endl;
-
-  return decision;
-}
-
 int getNeighborCount(Creature *grid[10][10], const Position &position,
-                     const std::unordered_map<char, int> &indexToDirection) {
+                     const std::unordered_map<int, char> &indexToDirection) {
   int count = 0;
 
   // N, E, S, W | N NE, E SE, S SW, W NW
@@ -199,6 +137,39 @@ int getNeighborCount(Creature *grid[10][10], const Position &position,
   }
 
   return count;
+}
+
+char getFarthestDirection(
+    Position position, const std::unordered_map<int, char> &indexToDirection) {
+  char decision = '\0';
+  int distances[4];
+
+  distances[0] = position.row;         // North
+  distances[1] = 9 - position.column;  // East
+  distances[2] = 9 - position.row;     // South
+  distances[3] = position.column;      // West
+
+  // Find the max distance
+  int max = distances[0];
+  for (int i = 1; i < 4; i++) {
+    if (distances[i] > max) {
+      max = distances[i];
+    }
+  }
+
+  // Returns the direction of the max distance in N, E, S, W order
+  for (int i = 0; i < 4; i++) {
+    if (distances[i] == max) {
+      decision = indexToDirection.at(i);
+      return decision;
+    }
+  }
+
+  // Function should not go past this point because max must be a number
+  // within distances[4]
+  std::cout << "Unexpected error in getFarthestDirection()" << std::endl;
+
+  return decision;
 }
 
 void checkOrthogonalNeighbors(
@@ -251,8 +222,53 @@ void moveIfPossible(Creature *grid[10][10], const Position &position,
 }
 
 template <typename CreatureType>
+int getNearestDistance(Creature *grid[10][10], Position position,
+                       const char &direction,
+                       const std::unordered_map<int, char> &indexToDirection) {
+  Position tempPosition(position);
+
+  while (tempPosition.isOnGrid()) {
+    // If there is a creature of the specified type
+    if (is<CreatureType>(grid[tempPosition.row][tempPosition.column])) {
+      if (position.row == tempPosition.row) {
+        int distance = Position::abs(tempPosition - position).column;
+        if (std::is_same<CreatureType, Ant>::value) {
+          distance *= 10;
+          distance += getNeighborCount(grid, tempPosition, indexToDirection);
+        }
+        return distance;
+      } else {
+        int distance = Position::abs(tempPosition - position).row;
+        if (std::is_same<CreatureType, Ant>::value) {
+          distance *= 10;
+          distance += getNeighborCount(grid, tempPosition, indexToDirection);
+        }
+        return distance;
+      }
+    }
+    tempPosition += Position::getOffset(direction);
+  }
+
+  // There isn't a nearest creature of the specified type
+  return 0;
+}
+
+template <typename CreatureType>
+void getNearestDistances(
+    Creature *grid[10][10], int distances[4], int row, int column,
+    const std::unordered_map<int, char> &indexToDirection) {
+  for (int i = 0; i < 4; i++) {
+    distances[i] = getNearestDistance<CreatureType>(
+        grid, Position(column, row), indexToDirection.at(i), indexToDirection);
+  }
+}
+
+template <typename CreatureType>
 void movePhase(Creature *grid[10][10],
                const std::unordered_map<int, char> &indexToDirection) {
+  std::vector<char> decisions = {};
+  std::vector<Position> positions = {};
+
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
       if (is<CreatureType>(grid[row][column])) {
@@ -264,9 +280,14 @@ void movePhase(Creature *grid[10][10],
         if (std::is_same<CreatureType, Beetle>::value) {
           getNearestDistances<Ant>(grid, distances, row, column,
                                    indexToDirection);
+          std::cout << "beetle" << std::endl;
         } else {  // and vice versa
           getNearestDistances<Beetle>(grid, distances, row, column,
                                       indexToDirection);
+          for (int i = 0; i < 4; i++) {
+            std::cout << distances[i] << " ";
+          }
+          std::cout << std::endl;
         }
 
         char decision = pointer->Move(distances, indexToDirection);
@@ -278,15 +299,26 @@ void movePhase(Creature *grid[10][10],
         }
 
         if (!(decision == '\0')) {
-          moveIfPossible(grid, Position(column, row), decision);
+          decisions.push_back(decision);
+          positions.push_back(currentPosition);
         }
       }
     }
   }
+
+  for (int i = 0; i < decisions.size(); i++) {
+    moveIfPossible(grid, positions[i], decisions[i]);
+  }
 }
+
+void spawnIfPossible(Creature *grid[10][10], const Position &position,
+                     const char &decision) {}
 
 void antBreedPhase(Creature *grid[10][10],
                    const std::unordered_map<int, char> &indexToDirection) {
+  std::vector<char> decisions = {};
+  std::vector<Position> positions = {};
+
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
       if (is<Ant>(grid[row][column])) {
@@ -351,12 +383,14 @@ void playGame(int turns, Creature *grid[10][10],
 
 int main() {
   std::string fileName, line;
+  char ant, beetle;
+  int turns;
 
-  // std::cout << "Please input the file name: " << std::endl;
-  std::cin >> fileName;
-  std::ifstream input(fileName);
+  // std::cout << "Please input everything: " << std::endl;
+  // std::cin >> fileName >> ant >> beetle >> turns;
+  // std::ifstream input(fileName);
 
-  // std::ifstream input("input.txt");
+  std::ifstream input("input.txt");
 
   // Exit if file wasn't opened properly
   if (!input.is_open()) {
@@ -375,7 +409,10 @@ int main() {
     readInputRow(line, grid, row);
   }
 
-  playGame(3, grid, indexToDirection);
+  // print(grid);
+
+  turns = 3;
+  playGame(turns, grid, indexToDirection);
 
   // Ant a;
   // int distances[4] = {1, 1, 0, 1};  // N, E, S, W

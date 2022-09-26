@@ -77,10 +77,10 @@ char Beetle::Move(int input[4],
   return '\0';
 }
 
-char Beetle::Breed(bool isCreature[4],
+char Beetle::Breed(bool isEmpty[4],
                    const std::unordered_map<int, char> &indexToDirection) {
   for (int i = 0; i < 4; i++) {
-    if (isCreature[i] == true) {
+    if (isEmpty[i]) {
       return indexToDirection.at(i);
     }
   }

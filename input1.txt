@@ -1,0 +1,10 @@
+a  B   aa 
+          
+      aa  
+          
+a       a  
+a   B   a   
+aa         
+aa          
+          
+          

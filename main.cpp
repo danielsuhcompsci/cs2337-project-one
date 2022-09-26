@@ -91,6 +91,11 @@ void readInputRow(std::string &line, Creature *grid[10][10], int row) {
 }
 
 void print(Creature *grid[10][10]) {
+  for (int i = 0; i < 10; i++) {
+    std::cout << i;
+  }
+  std::cout << std::endl;
+
   for (int row = 0; row < 10; row++) {
     for (int i = 0; i < 10; i++) {
       if (is<Ant>(grid[row][i])) {
@@ -98,9 +103,10 @@ void print(Creature *grid[10][10]) {
       } else if (is<Beetle>(grid[row][i])) {
         std::cout << "B";
       } else {
-        std::cout << " ";
+        std::cout << ".";
       }
     }
+    std::cout << " " << row;
     std::cout << std::endl;
   }
 }
@@ -173,20 +179,21 @@ char getFarthestDirection(
 }
 
 void checkOrthogonalNeighbors(
-    Creature *grid[10][10], bool isCreature[4], const Position &position,
+    Creature *grid[10][10], bool isEmpty[4], const Position &position,
     const std::unordered_map<int, char> &indexToDirection) {
+  // Iterate through orthogonal directions
   for (int i = 0; i < 4; i++) {
     Position tempPosition(position);
     tempPosition += Position::getOffset(indexToDirection.at(i));
 
     if (tempPosition.isOnGrid()) {
-      if (grid[tempPosition.row][tempPosition.column] != nullptr) {
-        isCreature[i] = true;
+      if (grid[tempPosition.row][tempPosition.column]) {
+        isEmpty[i] = false;
       } else {
-        isCreature[i] = false;
+        isEmpty[i] = true;
       }
     } else {
-      isCreature[i] = false;
+      isEmpty[i] = false;
     }
   }
 }
@@ -266,38 +273,43 @@ void getNearestDistances(
 template <typename CreatureType>
 void movePhase(Creature *grid[10][10],
                const std::unordered_map<int, char> &indexToDirection) {
+  // Decisions and positions queue for phase
   std::vector<char> decisions = {};
   std::vector<Position> positions = {};
 
+  // Iterate through the board for each phase
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
+      // If it's the specified creature type
       if (is<CreatureType>(grid[row][column])) {
+        // Get the pointer of the correct type to the creature
         CreatureType *pointer = dynamic_cast<CreatureType *>(grid[row][column]);
 
+        // Holds the nearest distances from the creature
         int distances[4];
 
         // If it's a beetle, find the nearest ants
         if (std::is_same<CreatureType, Beetle>::value) {
           getNearestDistances<Ant>(grid, distances, row, column,
                                    indexToDirection);
-          std::cout << "beetle" << std::endl;
-        } else {  // and vice versa
+        } else {  // And vice versa: if it's an ant, find the nearest beetles
           getNearestDistances<Beetle>(grid, distances, row, column,
                                       indexToDirection);
-          for (int i = 0; i < 4; i++) {
-            std::cout << distances[i] << " ";
-          }
-          std::cout << std::endl;
         }
 
+        // Make a decision based on the distances
         char decision = pointer->Move(distances, indexToDirection);
-
+        // Current position on grid
         Position currentPosition(column, row);
 
+        // Beetle::Move() can return 'F'
+        // If it does, we update the direction of the decision to be in the
+        // farthest direction
         if (decision == 'F') {
           decision = getFarthestDirection(currentPosition, indexToDirection);
         }
 
+        // If there is a decision, add it and the position to the queue
         if (!(decision == '\0')) {
           decisions.push_back(decision);
           positions.push_back(currentPosition);
@@ -306,6 +318,7 @@ void movePhase(Creature *grid[10][10],
     }
   }
 
+  // Apply decisions from queue
   for (int i = 0; i < decisions.size(); i++) {
     moveIfPossible(grid, positions[i], decisions[i]);
   }
@@ -319,29 +332,40 @@ void antBreedPhase(Creature *grid[10][10],
   std::vector<char> decisions = {};
   std::vector<Position> positions = {};
 
+  // Iterate through the grid
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
+      // If there is an ant
       if (is<Ant>(grid[row][column])) {
         Ant *ptr = dynamic_cast<Ant *>(grid[row][column]);
 
+        // Check for orthogonal neighbors and pass into Ant::Breed()
         bool isCreature[4];
-
         checkOrthogonalNeighbors(grid, isCreature, Position(column, row),
                                  indexToDirection);
         const char decision = ptr->Breed(isCreature, indexToDirection);
 
         // If there is a decision
         if (decision != '\0') {
-          Position spawnPosition(column, row);
-          spawnPosition += Position::getOffset(decision);
-
-          if (spawnPosition.isOnGrid()) {
-            if (!(grid[spawnPosition.row][spawnPosition.column] == nullptr)) {
-              std::cout << "spawn position not empty" << std::endl;
-            }
-            grid[spawnPosition.row][spawnPosition.column] = new Ant();
-          }
+          // Add the decision to the queue
+          decisions.push_back(decision);
+          positions.push_back(Position(column, row));
         }
+      }
+    }
+  }
+
+  // Apply the decisions from the queue for the phase
+  for (int i = 0; i < decisions.size(); i++) {
+    Position spawnPosition = positions[i] + Position::getOffset(decisions[i]);
+
+    if (spawnPosition.isOnGrid()) {
+      if (!(grid[spawnPosition.row][spawnPosition.column] == nullptr)) {
+        std::cout << "spawn position not empty" << std::endl;
+        std::cout << "decision: " << decisions[i] << std::endl;
+        std::cout << "position: " << positions[i] << std::endl;
+      } else {
+        grid[spawnPosition.row][spawnPosition.column] = new Ant();
       }
     }
   }
@@ -388,9 +412,10 @@ int main() {
 
   // std::cout << "Please input everything: " << std::endl;
   // std::cin >> fileName >> ant >> beetle >> turns;
-  // std::ifstream input(fileName);
+  std::cin >> fileName;
+  std::ifstream input(fileName);
 
-  std::ifstream input("input.txt");
+  // std::ifstream input("input.txt");
 
   // Exit if file wasn't opened properly
   if (!input.is_open()) {
@@ -410,6 +435,9 @@ int main() {
   }
 
   // print(grid);
+
+  std::cout << getNeighborCount(grid, Position(0, 5), indexToDirection)
+            << std::endl;
 
   turns = 3;
   playGame(turns, grid, indexToDirection);

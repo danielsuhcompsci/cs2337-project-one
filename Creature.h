@@ -7,7 +7,8 @@
 #include <unordered_map>
 
 class Creature {
- protected:
+ public:
+  virtual ~Creature() {}
   virtual char Move(int[4], const std::unordered_map<int, char>&) = 0;
   virtual char Breed(bool[4], const std::unordered_map<int, char>&) = 0;
 };

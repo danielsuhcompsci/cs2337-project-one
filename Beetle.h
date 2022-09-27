@@ -10,6 +10,7 @@
 class Beetle : public Creature {
  public:
   Beetle() {}
+  ~Beetle() override {}
   char Move(int[4], const std::unordered_map<int, char>&) override;
   char Breed(bool[4], const std::unordered_map<int, char>&) override;
   bool Starve();

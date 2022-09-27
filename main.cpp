@@ -228,24 +228,38 @@ void moveIfPossible(Creature *grid[10][10], const Position &position,
   }
 }
 
+// Gets the distance to the nearest creature of the specified type, in the
+// specified direction
 template <typename CreatureType>
 int getNearestDistance(Creature *grid[10][10], Position position,
                        const char &direction,
                        const std::unordered_map<int, char> &indexToDirection) {
+  // Temporary position used to locate the position of the nearest creature of
+  // the specified type
   Position tempPosition(position);
 
+  // While the temporary position is on the grid
   while (tempPosition.isOnGrid()) {
     // If there is a creature of the specified type
     if (is<CreatureType>(grid[tempPosition.row][tempPosition.column])) {
+      // If the positions are on the same x-axis,
       if (position.row == tempPosition.row) {
+        // Get the distance between original and temp position
         int distance = Position::abs(tempPosition - position).column;
+
+        // If it's a beetle looking for the nearest ant, change the formatting
+        // and add the neighbor count accordingly
         if (std::is_same<CreatureType, Ant>::value) {
           distance *= 10;
           distance += getNeighborCount(grid, tempPosition, indexToDirection);
         }
         return distance;
-      } else {
+      } else {  // Else the positions are on the same y-axis
+        // Get the distance between the original and temp position
         int distance = Position::abs(tempPosition - position).row;
+
+        // If it's a beetle looking for the nearest ant, change the formatting
+        // and add the neighbor count accordingly
         if (std::is_same<CreatureType, Ant>::value) {
           distance *= 10;
           distance += getNeighborCount(grid, tempPosition, indexToDirection);
@@ -253,6 +267,7 @@ int getNearestDistance(Creature *grid[10][10], Position position,
         return distance;
       }
     }
+    // Increment the position in the right direction
     tempPosition += Position::getOffset(direction);
   }
 
@@ -292,6 +307,10 @@ void movePhase(Creature *grid[10][10],
         if (std::is_same<CreatureType, Beetle>::value) {
           getNearestDistances<Ant>(grid, distances, row, column,
                                    indexToDirection);
+          for (int i = 0; i < 4; i++) {
+            std::cout << distances[i] << " ";
+          }
+          std::cout << std::endl;
         } else {  // And vice versa: if it's an ant, find the nearest beetles
           getNearestDistances<Beetle>(grid, distances, row, column,
                                       indexToDirection);
@@ -340,10 +359,10 @@ void antBreedPhase(Creature *grid[10][10],
         Ant *ptr = dynamic_cast<Ant *>(grid[row][column]);
 
         // Check for orthogonal neighbors and pass into Ant::Breed()
-        bool isCreature[4];
-        checkOrthogonalNeighbors(grid, isCreature, Position(column, row),
+        bool isEmpty[4];
+        checkOrthogonalNeighbors(grid, isEmpty, Position(column, row),
                                  indexToDirection);
-        const char decision = ptr->Breed(isCreature, indexToDirection);
+        const char decision = ptr->Breed(isEmpty, indexToDirection);
 
         // If there is a decision
         if (decision != '\0') {
@@ -361,10 +380,12 @@ void antBreedPhase(Creature *grid[10][10],
 
     if (spawnPosition.isOnGrid()) {
       if (!(grid[spawnPosition.row][spawnPosition.column] == nullptr)) {
-        std::cout << "spawn position not empty" << std::endl;
-        std::cout << "decision: " << decisions[i] << std::endl;
-        std::cout << "position: " << positions[i] << std::endl;
+        // std::cout << "spawn position not empty" << std::endl;
+        // std::cout << "decision: " << decisions[i] << std::endl;
+        // std::cout << "position: " << positions[i] << std::endl;
       } else {
+        std::cout << "spawning ant " << decisions[i] << " of " << positions[i]
+                  << std::endl;
         grid[spawnPosition.row][spawnPosition.column] = new Ant();
       }
     }
@@ -377,18 +398,22 @@ void starvePhase(Creature *grid[10][10],
 void playGame(int turns, Creature *grid[10][10],
               const std::unordered_map<int, char> &indexToDirection) {
   for (int turn = 1; turn <= turns; turn++) {
-    for (int phase = 0; phase < 2; phase++) {
-      switch (phase) {
-        case 0:  // Beetles move
-          movePhase<Beetle>(grid, indexToDirection);
-          break;
-        case 1:  // Ants move
-          movePhase<Ant>(grid, indexToDirection);
-          break;
-        case 2:  // Beetles starve
-          break;
-      }
-    }
+    // Beetles Move
+    movePhase<Beetle>(grid, indexToDirection);
+
+    std::cout << "AFTER BEETLE MOVE" << std::endl;
+    print(grid);
+    std::cout << std::endl;
+
+    // Ants Move
+    movePhase<Ant>(grid, indexToDirection);
+
+    std::cout << "AFTER ANT MOVE" << std::endl;
+    print(grid);
+    std::cout << std::endl;
+
+    // Beetles Starve
+    // starvePhase(grid, indexToDirection);
 
     // Ants breed
     if (turn % 3 == 0) {
@@ -435,12 +460,15 @@ int main() {
   }
 
   // print(grid);
-
-  std::cout << getNeighborCount(grid, Position(0, 5), indexToDirection)
-            << std::endl;
+  std::cout << "INITIAL GRID" << std::endl;
+  print(grid);
+  std::cout << std::endl;
 
   turns = 3;
   playGame(turns, grid, indexToDirection);
+
+  std::cout << getNeighborCount(grid, Position(8, 1), indexToDirection)
+            << std::endl;
 
   // Ant a;
   // int distances[4] = {1, 1, 0, 1};  // N, E, S, W

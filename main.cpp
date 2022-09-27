@@ -1,5 +1,7 @@
 // Daniel dss210005
 
+#include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -38,6 +40,10 @@ typedef struct Position {
     this->row += position.row;
 
     return *this;
+  }
+
+  bool operator==(const Position &position) {
+    return (this->column == position.column) && (this->row == position.row);
   }
 
   friend std::ostream &operator<<(std::ostream &os, const Position &position) {
@@ -90,23 +96,23 @@ void readInputRow(std::string &line, Creature *grid[10][10], int row) {
   }
 }
 
-void print(Creature *grid[10][10]) {
-  for (int i = 0; i < 10; i++) {
-    std::cout << i;
-  }
-  std::cout << std::endl;
+void print(Creature *grid[10][10], std::string ant, std::string beetle) {
+  // for (int i = 0; i < 10; i++) {
+  //   std::cout << i;
+  // }
+  // std::cout << std::endl;
 
   for (int row = 0; row < 10; row++) {
     for (int i = 0; i < 10; i++) {
       if (is<Ant>(grid[row][i])) {
-        std::cout << "a";
+        std::cout << ant;
       } else if (is<Beetle>(grid[row][i])) {
-        std::cout << "B";
+        std::cout << beetle;
       } else {
-        std::cout << ".";
+        std::cout << " ";
       }
     }
-    std::cout << " " << row;
+    // std::cout << " " << row;
     std::cout << std::endl;
   }
 }
@@ -198,7 +204,7 @@ void checkOrthogonalNeighbors(
   }
 }
 
-void moveIfPossible(Creature *grid[10][10], const Position &position,
+bool moveIfPossible(Creature *grid[10][10], const Position &position,
                     const char &decision) {
   Position newPosition(position);
   newPosition += Position::getOffset(decision);
@@ -210,6 +216,8 @@ void moveIfPossible(Creature *grid[10][10], const Position &position,
       grid[newPosition.row][newPosition.column] =
           grid[position.row][position.column];
       grid[position.row][position.column] = nullptr;
+
+      return true;
     } else {  // If there is a creature
       // If a beetle is eating an ant
       if (is<Beetle>(grid[position.row][position.column]) &&
@@ -223,9 +231,21 @@ void moveIfPossible(Creature *grid[10][10], const Position &position,
 
         // Set beetles old spot to empty
         grid[position.row][position.column] = nullptr;
+
+        // Reset beetle starving timer
+        Beetle *ptr =
+            dynamic_cast<Beetle *>(grid[newPosition.row][newPosition.column]);
+        ptr->ResetTimer();
+
+        return true;
       }
+
+      // Return false because any other creature-onto-creature interaction
+      // doesn't work
+      return false;
     }
   }
+  return false;
 }
 
 // Gets the distance to the nearest creature of the specified type, in the
@@ -288,9 +308,8 @@ void getNearestDistances(
 template <typename CreatureType>
 void movePhase(Creature *grid[10][10],
                const std::unordered_map<int, char> &indexToDirection) {
-  // Decisions and positions queue for phase
-  std::vector<char> decisions = {};
-  std::vector<Position> positions = {};
+  // Holds the positions that have been moved to this phase
+  std::vector<Position> positionsMovedTo = {};
 
   // Iterate through the board for each phase
   for (int column = 0; column < 10; column++) {
@@ -307,10 +326,6 @@ void movePhase(Creature *grid[10][10],
         if (std::is_same<CreatureType, Beetle>::value) {
           getNearestDistances<Ant>(grid, distances, row, column,
                                    indexToDirection);
-          for (int i = 0; i < 4; i++) {
-            std::cout << distances[i] << " ";
-          }
-          std::cout << std::endl;
         } else {  // And vice versa: if it's an ant, find the nearest beetles
           getNearestDistances<Beetle>(grid, distances, row, column,
                                       indexToDirection);
@@ -328,116 +343,145 @@ void movePhase(Creature *grid[10][10],
           decision = getFarthestDirection(currentPosition, indexToDirection);
         }
 
-        // If there is a decision, add it and the position to the queue
-        if (!(decision == '\0')) {
-          decisions.push_back(decision);
-          positions.push_back(currentPosition);
+        // If there is a decision and it's not occuring from a position that has
+        // already been moved to
+        if (!(decision == '\0') &&
+            (std::find(positionsMovedTo.begin(), positionsMovedTo.end(),
+                       currentPosition) == positionsMovedTo.end())) {
+          // Apply decision if possible
+          bool didMove = moveIfPossible(grid, currentPosition, decision);
+
+          // If it moved, add it to the list of positions moved to
+          if (didMove) {
+            positionsMovedTo.push_back(currentPosition +
+                                       Position::getOffset(decision));
+          }
         }
       }
     }
   }
-
-  // Apply decisions from queue
-  for (int i = 0; i < decisions.size(); i++) {
-    moveIfPossible(grid, positions[i], decisions[i]);
-  }
 }
 
-void spawnIfPossible(Creature *grid[10][10], const Position &position,
-                     const char &decision) {}
-
-void antBreedPhase(Creature *grid[10][10],
-                   const std::unordered_map<int, char> &indexToDirection) {
-  std::vector<char> decisions = {};
-  std::vector<Position> positions = {};
+template <typename CreatureType>
+void breedPhase(Creature *grid[10][10],
+                const std::unordered_map<int, char> &indexToDirection) {
+  // Holds the positions of creatures that were spawned this phase
+  std::vector<Position> positionsSpawnedOn = {};
 
   // Iterate through the grid
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
-      // If there is an ant
-      if (is<Ant>(grid[row][column])) {
-        Ant *ptr = dynamic_cast<Ant *>(grid[row][column]);
+      // If there is a creature of the specified type
+      if (is<CreatureType>(grid[row][column])) {
+        CreatureType *ptr = dynamic_cast<CreatureType *>(grid[row][column]);
 
         // Check for orthogonal neighbors and pass into Ant::Breed()
         bool isEmpty[4];
         checkOrthogonalNeighbors(grid, isEmpty, Position(column, row),
                                  indexToDirection);
         const char decision = ptr->Breed(isEmpty, indexToDirection);
+        Position currentPosition(column, row);
 
-        // If there is a decision
-        if (decision != '\0') {
-          // Add the decision to the queue
-          decisions.push_back(decision);
-          positions.push_back(Position(column, row));
+        // If there is a decision and the current creature isn't a spawned
+        // creature
+        if (!(decision == '\0') &&
+            (std::find(positionsSpawnedOn.begin(), positionsSpawnedOn.end(),
+                       currentPosition)) == positionsSpawnedOn.end()) {
+          // Apply decision if possible
+          Position spawnPosition =
+              currentPosition + Position::getOffset(decision);
+
+          assert(spawnPosition.isOnGrid());
+          assert(grid[spawnPosition.row][spawnPosition.column] == nullptr);
+
+          // Add the new creature to the grid
+          if (std::is_same<CreatureType, Beetle>::value) {
+            grid[spawnPosition.row][spawnPosition.column] = new Beetle();
+          } else {
+            grid[spawnPosition.row][spawnPosition.column] = new Ant();
+          }
+
+          // Add the new position to the vector of positions spawned on
+          positionsSpawnedOn.push_back(spawnPosition);
         }
-      }
-    }
-  }
-
-  // Apply the decisions from the queue for the phase
-  for (int i = 0; i < decisions.size(); i++) {
-    Position spawnPosition = positions[i] + Position::getOffset(decisions[i]);
-
-    if (spawnPosition.isOnGrid()) {
-      if (!(grid[spawnPosition.row][spawnPosition.column] == nullptr)) {
-        // std::cout << "spawn position not empty" << std::endl;
-        // std::cout << "decision: " << decisions[i] << std::endl;
-        // std::cout << "position: " << positions[i] << std::endl;
-      } else {
-        std::cout << "spawning ant " << decisions[i] << " of " << positions[i]
-                  << std::endl;
-        grid[spawnPosition.row][spawnPosition.column] = new Ant();
       }
     }
   }
 }
 
+// Beetle starve phase
 void starvePhase(Creature *grid[10][10],
-                 const std::unordered_map<int, char> &indexToDirection) {}
+                 const std::unordered_map<int, char> &indexToDirection) {
+  for (int column = 0; column < 10; column++) {
+    for (int row = 0; row < 10; row++) {
+      // If there is a beetle
+      if (is<Beetle>(grid[row][column])) {
+        Beetle *ptr = dynamic_cast<Beetle *>(grid[row][column]);
+        // If the beetle starved
+        if (ptr->Starve()) {
+          delete ptr;
+          grid[row][column] = nullptr;
+        }
+      }
+    }
+  }
+}
 
 void playGame(int turns, Creature *grid[10][10],
-              const std::unordered_map<int, char> &indexToDirection) {
+              const std::unordered_map<int, char> &indexToDirection,
+              std::string ant, std::string beetle) {
   for (int turn = 1; turn <= turns; turn++) {
     // Beetles Move
     movePhase<Beetle>(grid, indexToDirection);
 
-    std::cout << "AFTER BEETLE MOVE" << std::endl;
-    print(grid);
-    std::cout << std::endl;
+    // std::cout << "AFTER BEETLE MOVE" << std::endl;
+    // print(grid);
+    // std::cout << std::endl;
 
     // Ants Move
     movePhase<Ant>(grid, indexToDirection);
 
-    std::cout << "AFTER ANT MOVE" << std::endl;
-    print(grid);
-    std::cout << std::endl;
+    // std::cout << "AFTER ANT MOVE" << std::endl;
+    // print(grid);
+    // std::cout << std::endl;
+
+    // Beetle starve timer decrement
+    for (int column = 0; column < 10; column++) {
+      for (int row = 0; row < 10; row++) {
+        if (is<Beetle>(grid[row][column])) {
+          Beetle *ptr = dynamic_cast<Beetle *>(grid[row][column]);
+          ptr->DecrementTimer();
+        }
+      }
+    }
 
     // Beetles Starve
-    // starvePhase(grid, indexToDirection);
-
+    if (turn >= 5) {
+      starvePhase(grid, indexToDirection);
+    }
     // Ants breed
     if (turn % 3 == 0) {
-      antBreedPhase(grid, indexToDirection);
+      breedPhase<Ant>(grid, indexToDirection);
     }
 
     // Beetles breed
     if (turn % 8 == 0) {
+      breedPhase<Beetle>(grid, indexToDirection);
     }
 
     std::cout << "TURN " << turn << std::endl;
-    print(grid);
+    print(grid, ant, beetle);
     std::cout << std::endl;
   }
 }
 
 int main() {
-  std::string fileName, line;
-  char ant, beetle;
+  std::string fileName, line, ant, beetle;
   int turns;
 
   // std::cout << "Please input everything: " << std::endl;
-  // std::cin >> fileName >> ant >> beetle >> turns;
-  std::cin >> fileName;
+  std::cin >> fileName >> ant >> beetle >> turns;
+  // std::cin >> fileName;
   std::ifstream input(fileName);
 
   // std::ifstream input("input.txt");
@@ -459,16 +503,7 @@ int main() {
     readInputRow(line, grid, row);
   }
 
-  // print(grid);
-  std::cout << "INITIAL GRID" << std::endl;
-  print(grid);
-  std::cout << std::endl;
-
-  turns = 3;
-  playGame(turns, grid, indexToDirection);
-
-  std::cout << getNeighborCount(grid, Position(8, 1), indexToDirection)
-            << std::endl;
+  playGame(turns, grid, indexToDirection, ant, beetle);
 
   // Ant a;
   // int distances[4] = {1, 1, 0, 1};  // N, E, S, W

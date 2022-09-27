@@ -89,6 +89,5 @@ char Beetle::Breed(bool isEmpty[4],
 }
 
 bool Beetle::Starve() { return (timer == 0) ? true : false; }
-
 void Beetle::ResetTimer() { this->timer = 5; }
 void Beetle::DecrementTimer() { this->timer--; }

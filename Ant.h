@@ -8,7 +8,7 @@
 class Ant : public Creature {
  public:
   Ant() {}
-  virtual ~Ant() {}
+  virtual ~Ant() {}  // Virtual destructor for dynamic destruction
   char Move(int[4], const std::unordered_map<int, char>&) override;
   char Breed(bool[4], const std::unordered_map<int, char>&) override;
 };

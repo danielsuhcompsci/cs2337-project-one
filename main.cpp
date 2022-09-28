@@ -13,11 +13,13 @@
 #include "Ant.h"
 #include "Beetle.h"
 
+// Checks if the pointer is of the specified creature type by dynamic casting
 template <typename CreatureType>
 bool is(Creature *ptr) {
   return (dynamic_cast<CreatureType *>(ptr) != nullptr) ? true : false;
 }
 
+// Used for a position on a grid and to hold related operators and functionality
 typedef struct Position {
   int column;
   int row;
@@ -51,14 +53,18 @@ typedef struct Position {
               << std::endl;
   }
 
+  // Checks if the position within the grid boundaries
   bool isOnGrid() {
     return (0 <= row && row < 10 && 0 <= column && column < 10) ? true : false;
   }
 
+  // Gets the absolute value of the position
   static Position abs(const Position &position) {
     return Position(std::abs(position.column), std::abs(position.row));
   }
 
+  // Returns the appropriate unit offset for a specified direction,
+  // assuming: +X direction is East, and +Y direction is South
   static Position getOffset(const char &direction) {
     switch (direction) {
       case 'N':
@@ -82,6 +88,7 @@ typedef struct Position {
   }
 } Position;
 
+// Reads in the input according to format, populates the grid pointer array
 void readInputRow(std::string &line, Creature *grid[10][10], int row) {
   for (int i = 0; i < line.length(); i++) {
     if (line[i] == 'a') {
@@ -96,12 +103,8 @@ void readInputRow(std::string &line, Creature *grid[10][10], int row) {
   }
 }
 
+// Prints the grid according to the specified format
 void print(Creature *grid[10][10], std::string ant, std::string beetle) {
-  // for (int i = 0; i < 10; i++) {
-  //   std::cout << i;
-  // }
-  // std::cout << std::endl;
-
   for (int row = 0; row < 10; row++) {
     for (int i = 0; i < 10; i++) {
       if (is<Ant>(grid[row][i])) {
@@ -112,15 +115,18 @@ void print(Creature *grid[10][10], std::string ant, std::string beetle) {
         std::cout << " ";
       }
     }
-    // std::cout << " " << row;
     std::cout << std::endl;
   }
 }
 
+// Returns the number of adjacent orthogonal and diagonal neighbors relative to
+// a given position
 int getNeighborCount(Creature *grid[10][10], const Position &position,
                      const std::unordered_map<int, char> &indexToDirection) {
+  // Holds the neighbor count
   int count = 0;
 
+  // Order of checking:
   // N, E, S, W | N NE, E SE, S SW, W NW
   for (int i = 0; i < 4; i++) {
     // Create mutable position temp struct
@@ -130,6 +136,8 @@ int getNeighborCount(Creature *grid[10][10], const Position &position,
     // For example if (i = 0) it checks the North neighbor
     tempPosition += Position::getOffset(indexToDirection.at(i));
 
+    // If the orthogonal position is on the grid and it has an ant, increment
+    // count
     if (tempPosition.isOnGrid()) {
       if (is<Ant>(grid[tempPosition.row][tempPosition.column])) {
         count++;
@@ -141,6 +149,8 @@ int getNeighborCount(Creature *grid[10][10], const Position &position,
     // east offset)
     tempPosition += Position::getOffset(indexToDirection.at((i + 1) % 4));
 
+    // If the diagonal position is on the grid and it has an ant, increment
+    // count
     if (tempPosition.isOnGrid()) {
       if (is<Ant>(grid[tempPosition.row][tempPosition.column])) {
         count++;
@@ -151,9 +161,13 @@ int getNeighborCount(Creature *grid[10][10], const Position &position,
   return count;
 }
 
+// Gets the farthest direction to move to from a specifed position, used with
+// Beetle::Move()
 char getFarthestDirection(
     Position position, const std::unordered_map<int, char> &indexToDirection) {
+  // Decision, initially set to null char
   char decision = '\0';
+  // Holds the distances to grid boundary in every direction
   int distances[4];
 
   distances[0] = position.row;         // North
@@ -169,7 +183,7 @@ char getFarthestDirection(
     }
   }
 
-  // Returns the direction of the max distance in N, E, S, W order
+  // Returns the decision corresponding to the max distance in N, E, S, W order
   for (int i = 0; i < 4; i++) {
     if (distances[i] == max) {
       decision = indexToDirection.at(i);
@@ -184,34 +198,44 @@ char getFarthestDirection(
   return decision;
 }
 
+// Checks orthogonal directions for valid breed positions, used with
+// Ant::Breed() and Beetle::Breed()
 void checkOrthogonalNeighbors(
     Creature *grid[10][10], bool isEmpty[4], const Position &position,
     const std::unordered_map<int, char> &indexToDirection) {
   // Iterate through orthogonal directions
   for (int i = 0; i < 4; i++) {
+    // Temporary position for each offset: N, E, S, W
     Position tempPosition(position);
     tempPosition += Position::getOffset(indexToDirection.at(i));
 
+    // If this position is on the grid
     if (tempPosition.isOnGrid()) {
+      // If there is a creature, set bool to false at the correct position in
+      // isEmpty
       if (grid[tempPosition.row][tempPosition.column]) {
         isEmpty[i] = false;
-      } else {
+      } else {  // Else, set bool to true at the correct position in isEmpty
         isEmpty[i] = true;
       }
-    } else {
+    } else {  // Else (it's not on the grid), set current direction bool to
+              // false
       isEmpty[i] = false;
     }
   }
 }
 
+// Performs a move given a position and a decision, returns true if the move
+// happened, false otherwise
 bool moveIfPossible(Creature *grid[10][10], const Position &position,
                     const char &decision) {
+  // The position to be moved to
   Position newPosition(position);
   newPosition += Position::getOffset(decision);
 
   // Make sure it's on the grid
   if (newPosition.isOnGrid()) {
-    // If its empty
+    // If its empty, move creature from old position to new position
     if (grid[newPosition.row][newPosition.column] == nullptr) {
       grid[newPosition.row][newPosition.column] =
           grid[position.row][position.column];
@@ -245,6 +269,8 @@ bool moveIfPossible(Creature *grid[10][10], const Position &position,
       return false;
     }
   }
+
+  // Return false if it's not on the grid
   return false;
 }
 
@@ -295,23 +321,27 @@ int getNearestDistance(Creature *grid[10][10], Position position,
   return 0;
 }
 
+// Gets the nearest distances to a specified creature type
 template <typename CreatureType>
 void getNearestDistances(
     Creature *grid[10][10], int distances[4], int row, int column,
     const std::unordered_map<int, char> &indexToDirection) {
+  // Iterate through orthogonal directions
   for (int i = 0; i < 4; i++) {
     distances[i] = getNearestDistance<CreatureType>(
         grid, Position(column, row), indexToDirection.at(i), indexToDirection);
   }
 }
 
+// Holds the logic for the move phase of a turn, for a specified creature type
 template <typename CreatureType>
 void movePhase(Creature *grid[10][10],
                const std::unordered_map<int, char> &indexToDirection) {
-  // Holds the positions that have been moved to this phase
+  // Holds the positions that have been moved to this phase, makes sure a
+  // creature doesn't move twice in the same phase
   std::vector<Position> positionsMovedTo = {};
 
-  // Iterate through the board for each phase
+  // Iterate through the board for each phase, column first
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
       // If it's the specified creature type
@@ -362,10 +392,12 @@ void movePhase(Creature *grid[10][10],
   }
 }
 
+// Holds the logic for the breed phase of a turn, for a specified creature type
 template <typename CreatureType>
 void breedPhase(Creature *grid[10][10],
                 const std::unordered_map<int, char> &indexToDirection) {
-  // Holds the positions of creatures that were spawned this phase
+  // Holds the positions of creatures that were spawned this phase, so that a
+  // spawned creature doesn't try to breed
   std::vector<Position> positionsSpawnedOn = {};
 
   // Iterate through the grid
@@ -412,12 +444,14 @@ void breedPhase(Creature *grid[10][10],
 // Beetle starve phase
 void starvePhase(Creature *grid[10][10],
                  const std::unordered_map<int, char> &indexToDirection) {
+  // iterate through grid
   for (int column = 0; column < 10; column++) {
     for (int row = 0; row < 10; row++) {
       // If there is a beetle
       if (is<Beetle>(grid[row][column])) {
         Beetle *ptr = dynamic_cast<Beetle *>(grid[row][column]);
-        // If the beetle starved
+        // If the beetle starved, deallocate it and set the grid position to
+        // null
         if (ptr->Starve()) {
           delete ptr;
           grid[row][column] = nullptr;
@@ -427,25 +461,26 @@ void starvePhase(Creature *grid[10][10],
   }
 }
 
+// Holds the logic for the gameplay for the specified number of turns
 void playGame(int turns, Creature *grid[10][10],
               const std::unordered_map<int, char> &indexToDirection,
               std::string ant, std::string beetle) {
   for (int turn = 1; turn <= turns; turn++) {
-    // Beetles Move
+    // Beetles Move Phase
     movePhase<Beetle>(grid, indexToDirection);
 
     // std::cout << "AFTER BEETLE MOVE" << std::endl;
     // print(grid);
     // std::cout << std::endl;
 
-    // Ants Move
+    // Ants Move Phase
     movePhase<Ant>(grid, indexToDirection);
 
     // std::cout << "AFTER ANT MOVE" << std::endl;
     // print(grid);
     // std::cout << std::endl;
 
-    // Beetle starve timer decrement
+    // Beetle starve timer decrement every turn
     for (int column = 0; column < 10; column++) {
       for (int row = 0; row < 10; row++) {
         if (is<Beetle>(grid[row][column])) {
@@ -455,20 +490,21 @@ void playGame(int turns, Creature *grid[10][10],
       }
     }
 
-    // Beetles Starve
+    // Beetles Starve Phase
     if (turn >= 5) {
       starvePhase(grid, indexToDirection);
     }
-    // Ants breed
+    // Ants Breed Phase
     if (turn % 3 == 0) {
       breedPhase<Ant>(grid, indexToDirection);
     }
 
-    // Beetles breed
+    // Beetles Breed Phase
     if (turn % 8 == 0) {
       breedPhase<Beetle>(grid, indexToDirection);
     }
 
+    // Print the turn state
     std::cout << "TURN " << turn << std::endl;
     print(grid, ant, beetle);
     std::cout << std::endl;
@@ -492,8 +528,10 @@ int main() {
     return 1;
   }
 
+  // Array of creature pointers
   Creature *grid[10][10];
 
+  // Holds the map to from an index to a direction character
   const std::unordered_map<int, char> indexToDirection(
       {{0, 'N'}, {1, 'E'}, {2, 'S'}, {3, 'W'}});
 
@@ -503,6 +541,11 @@ int main() {
     readInputRow(line, grid, row);
   }
 
+  // Print out the initial state
+  std::cout << "INITIAL GRID" << std::endl;
+  print(grid, ant, beetle);
+
+  // Initiates game
   playGame(turns, grid, indexToDirection, ant, beetle);
 
   // Ant a;

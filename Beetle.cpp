@@ -13,9 +13,12 @@ void Beetle::ParseInput(int input[4], int distances[4], int neighbors[4]) {
 
 char Beetle::Move(int input[4],
                   const std::unordered_map<int, char> &indexToDirection) {
+  // Holds the distances in each direction: N, E, S, W
   int distances[4];
+  // Holds the count for neighbors for each direction N, E, S, W
   int neighbors[4];
 
+  // Parses and populates distances and neighbors
   Beetle::ParseInput(input, distances, neighbors);
 
   // If there are no ants in any direction, return 'F' standing for farthest
@@ -79,15 +82,18 @@ char Beetle::Move(int input[4],
 
 char Beetle::Breed(bool isEmpty[4],
                    const std::unordered_map<int, char> &indexToDirection) {
+  // isEmpty holds booleans for if it's a valid breed position in N, E, S, W
+  // order The first instance of true is returned
   for (int i = 0; i < 4; i++) {
     if (isEmpty[i]) {
       return indexToDirection.at(i);
     }
   }
 
+  // If there is no empty spot, then a null char is returned
   return '\0';
 }
 
 bool Beetle::Starve() { return (timer == 0) ? true : false; }
-void Beetle::ResetTimer() { this->timer = 5; }
+void Beetle::ResetTimer() { this->timer = 6; }
 void Beetle::DecrementTimer() { this->timer--; }

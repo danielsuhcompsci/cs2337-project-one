@@ -68,12 +68,14 @@ char Ant::Move(int distances[4],
 
 char Ant::Breed(bool isEmpty[4],
                 const std::unordered_map<int, char> &indexToDirection) {
+  // isEmpty holds booleans for valid spawn positions in N, E, S, W order
+  // If there is an empty spot, return the decision
   for (int i = 0; i < 4; i++) {
     if (isEmpty[i]) {
       return indexToDirection.at(i);
     }
   }
 
-  // Nowhere to breed
+  // Else return a null decision
   return '\0';
 }
